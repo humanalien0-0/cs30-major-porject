@@ -1,12 +1,18 @@
 # CS30 Major Porject
 
 ## Description
-tell me what you are going to build...
+I am building a professional multiplayer chess game (playing from two differnt computers)
 
 ## Needs to have list
-- thing 1
-- thing 2
+- Proper movement of pieces
+- check and checkmating with advanced rules
+- Timer
+- three modes - bullet, blitz and rapid
+- special puzzles mode
 
 ## Nice to have list
-- thing 1
-- thing 2
+- animations when starting and ending the game
+- intro screen and outro screen 
+- sound effects and background music
+- randomizing the board colour
+- 
