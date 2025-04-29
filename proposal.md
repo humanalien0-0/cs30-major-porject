@@ -3,14 +3,15 @@
 ## Description
 I am building a  multiplayer chess game (playing from two differnt computers)
 
-## Needs to have list
+## Need to have list
 - Proper movement of pieces
 - check and checkmating with advanced rules
 - Timer
 - multiplyer function
-- three modes - bullet, blitz and rapid
+- three game modes - multiplayer in the same computer, multiplayer in different computers and AI bot
+- three chess modes - bullet, blitz and rapid
 - special puzzles mode
-- AI bot to play 1v1 with the player
+
 
 ## Nice to have list
 - animations when starting and ending the game
@@ -19,10 +20,9 @@ I am building a  multiplayer chess game (playing from two differnt computers)
 - sound effects and background music
 - randomizing the board colour
 - custom time
-- rematch, 
+- rematch
 - leaderboard rankings
 - random easter eggs - sound effects
-- different levels of ai bots (maybe)
 - navigations buttons
-- game history (win or lose)
+- game history (win or lose - maybe)
 
