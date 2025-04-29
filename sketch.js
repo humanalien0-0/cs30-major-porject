@@ -7,7 +7,7 @@
 
 // log
 // April 17th - started researchng about p5.party to create multiplayer function of the game 
-
+// APRIL 29TH - RESEARCHING ON CHESS BOTS 
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
