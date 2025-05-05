@@ -18,7 +18,7 @@
 // step 3 - create a function to display the path of the selcted dot
 // step 4 - create a function to detect whether the connceted dots are the same color
 
-const CHESSBOARD_DIMENSIONS = 8; // 8x8 chess board
+const CHESSBOARD_DIMENSIONS =3; // 8x8 chess board
 let cellSize;                     
 let board = [];                  
 let xOffset, yOffset;// offsets for centering the board
@@ -26,15 +26,44 @@ let xOffset, yOffset;// offsets for centering the board
 function setup() {
   createCanvas(windowWidth, windowHeight);
   calculateBoardDimensions(); // Calculate initial board dimensions
-  initialBoard(); // Set up starting piece positions
+  //initialBoard(); // Set up starting piece positions
 }
 
 function draw() {
-  background("cyan");
+  background(20, 50, 100);
 
   drawBoard();
   drawPieces();
 }
+
+// function initialBoard() {
+
+// }
+function calculateBoardDimensions() {
+  // Size board based on smaller size
+  const MINI_DIMENSIONS = min(width, height);
+  cellSize = MINI_DIMENSIONS / CHESSBOARD_DIMENSIONS * 0.9; // 90% of available space
+  
+  // Center the board
+  xOffset = (width - cellSize * CHESSBOARD_DIMENSIONS) / 2;
+  yOffset = (height - cellSize * CHESSBOARD_DIMENSIONS) / 2;
+}
+
+function drawBoard() {
+  rectMode(CORNER); // Draw from top-left corner
+  stroke(0);//boarders for the chess squares
+  strokeWeight(1);
+  
+  for (let row = 0; row < CHESSBOARD_DIMENSIONS; row++) {
+    for (let col = 0; col < CHESSBOARD_DIMENSIONS; col++) {
+      
+      stroke("white");
+      fill("black");// draw white and black squares alternately
+      rect(xOffset + col * cellSize, yOffset + row * cellSize, cellSize, cellSize);//offset used to center the chess board
+    }
+  }
+}
+
 
 function initialBoard() {
 
@@ -47,37 +76,86 @@ function initialBoard() {
     }
     board.push(row);
   }
-
-  // Set up pawns
-  for (let i = 0; i < CHESSBOARD_DIMENSIONS; i++) {
-    board[1][i] = { type: "pawn", color: "black" }; // Black pawns
-    board[6][i] = { type: "pawn", color: "white" }; // White pawns
+}
+function generateGrid(cols, rows) {
+  let newGrid = [];
+  for (let y = 0; y < rows; y++) {
+    newGrid.push([]);
+    for (let x = 0; x < cols; x++) {
+      newGrid[y].push(0);
+    }
   }
-
-  // Set up other pieces
-  const PIECE_ORDER = ["rook", "knight", "bishop", "queen", "king", "bishop", "knight", "rook"];
-  
-  // Black back row
-  PIECE_ORDER.forEach((type, col) => {
-    board[0][col] = { type, color: "black" };
-  });
-  
-  // White back row
-  PIECE_ORDER.forEach((type, col) => {
-    board[7][col] = { type, color: "white" };
-  });
+  return newGrid;
 }
 
 
-function drawBoard() {
-  rectMode(CORNER); // Draw from top-left corner
-  stroke(0);//boarders for the chess squares
-  strokeWeight(1);
-  
-  for (let row = 0; row < CHESSBOARD_DIMENSIONS; row++) {
-    for (let col = 0; col < CHESSBOARD_DIMENSIONS; col++) {
-      fill((row + col) % 2 === 0 ? 240 : "lightgreen");// draw white and black squares alternately
-      rect(xOffset + col * cellSize, yOffset + row * cellSize, cellSize, cellSize);//offset used to center the chess board
+
+//////////////////////////////////////////////////////////////////////
+
+// 2D Array Grid Neighbours Demo
+
+let cellSize;
+const SQUARE_DIMENSIONS = 10;
+let grid;
+
+function setup() {
+  createCanvas(windowWidth, windowHeight);
+
+  //make the largest square that fits
+  if (height > width) {
+    cellSize = width / SQUARE_DIMENSIONS;
+  }
+  else {
+    cellSize = height / SQUARE_DIMENSIONS;
+  }
+
+  grid = generateGrid(SQUARE_DIMENSIONS, SQUARE_DIMENSIONS);
+}
+
+function draw() {
+  background(220);
+  displayGrid();
+}
+
+
+function displayGrid() {
+  for (let y = 0; y < SQUARE_DIMENSIONS; y++) {
+    for (let x = 0; x < SQUARE_DIMENSIONS; x++) {
+      if (grid[y][x] === 1) {
+        fill("black");
+      }
+      else if (grid[y][x] === 0) {
+        fill("white");
+      }
+      rect(x * cellSize, y * cellSize, cellSize, cellSize);
     }
   }
 }
+
+function generateGrid(cols, rows) {
+  let newGrid = [];
+  for (let y = 0; y < rows; y++) {
+    newGrid.push([]);
+    for (let x = 0; x < cols; x++) {
+      newGrid[y].push(0);
+    }
+  }
+  return newGrid;
+}
+
+// function generateRandomGrid(cols, rows) {
+//   let newGrid = [];
+//   for (let y = 0; y < rows; y++) {
+//     newGrid.push([]);
+//     for (let x = 0; x < cols; x++) {
+//       if (random(100) < 50) {
+//         newGrid[y].push(0);
+//       }
+//       else {
+//         newGrid[y].push(1);
+//       }
+//     }
+//   }
+//   return newGrid;
+// }
+
