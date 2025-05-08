@@ -11,6 +11,9 @@
 // step 3 - create a function to display the path of the selcted dot
 // step 4 - create a function to detect whether the connceted dots are the same color
 
+// log
+// may 7th - researching abotu animations
+
 const CHESSBOARD_DIMENSIONS =3; // 8x8 chess board
 let cellSize;                     
 let board = [];                  
