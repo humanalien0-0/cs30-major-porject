@@ -19,17 +19,19 @@ let cellSize;
 let board = [];                  
 let xOffset, yOffset;// offsets for centering the board
 
+let dots = ["r", "g", "b"];
+
+
 function setup() {
   createCanvas(windowWidth, windowHeight);
   calculateBoardDimensions(); // Calculate initial board dimensions
-  //initialBoard(); // Set up starting piece positions
+  initialBoard(); // Set up starting piece positions
 }
 
 function draw() {
   background(20, 50, 100);
-
   drawBoard();
-  drawPieces();
+  //drawPieces();
 }
 
 // function initialBoard() {
@@ -72,6 +74,12 @@ function initialBoard() {
     }
     board.push(row);
   }
+
+  for (let i = 0; i < CHESSBOARD_DIMENSIONS; i++) {
+    board[i][0] = board[i][2] = dots[i];
+  }
+  console.log(board[0][1]);
+
 }
 function generateGrid(cols, rows) {
   let newGrid = [];
@@ -84,74 +92,34 @@ function generateGrid(cols, rows) {
   return newGrid;
 }
 
+function drawPieces() {
+  for (let row = 0; row < CHESSBOARD_DIMENSIONS; row++) {
+    for (let col = 0; col < CHESSBOARD_DIMENSIONS; col++) {
+      const PIECE = board[row][col];
+      if (PIECE) {
+        const X_COR = xOffset + col * cellSize;
+        const Y_COR = yOffset + row * cellSize;
+        displayPiece(PIECE, X_COR, Y_COR, row, col);
+      }
+    }
+  }
+}
+
+// Draws an individual piece and increases the size of a piece when selected
+function displayPiece(piece, x, y, row, col) {
+  const IMG = piece.color === "white" ? whitePieces[piece.type] : blackPieces[piece.type];
+  
+  // setting up constants to change the size of the piece if selected 
+  const IS_SELECTED = selectedPiece && selectedRow === row && selectedCol === col;
+  const SCALE_OF_PIECES = IS_SELECTED ? selectedPieceScale : defaultPieceScale;
+  const IMG_SIZE = cellSize * SCALE_OF_PIECES;
+  
+  // setting up constants to center the piece in its square
+  const CENTER_PIECE_X = x + cellSize / 2 - IMG_SIZE / 2;
+  const CENTER_PIECE_Y = y + cellSize / 2 - IMG_SIZE / 2;
+  image(IMG, CENTER_PIECE_X, CENTER_PIECE_Y, IMG_SIZE, IMG_SIZE);// center and scale piece
+}
 
 
 //////////////////////////////////////////////////////////////////////
-
-// 2D Array Grid Neighbours Demo
-
-let cellSize;
-const SQUARE_DIMENSIONS = 10;
-let grid;
-
-function setup() {
-  createCanvas(windowWidth, windowHeight);
-
-  //make the largest square that fits
-  if (height > width) {
-    cellSize = width / SQUARE_DIMENSIONS;
-  }
-  else {
-    cellSize = height / SQUARE_DIMENSIONS;
-  }
-
-  grid = generateGrid(SQUARE_DIMENSIONS, SQUARE_DIMENSIONS);
-}
-
-function draw() {
-  background(220);
-  displayGrid();
-}
-
-
-function displayGrid() {
-  for (let y = 0; y < SQUARE_DIMENSIONS; y++) {
-    for (let x = 0; x < SQUARE_DIMENSIONS; x++) {
-      if (grid[y][x] === 1) {
-        fill("black");
-      }
-      else if (grid[y][x] === 0) {
-        fill("white");
-      }
-      rect(x * cellSize, y * cellSize, cellSize, cellSize);
-    }
-  }
-}
-
-function generateGrid(cols, rows) {
-  let newGrid = [];
-  for (let y = 0; y < rows; y++) {
-    newGrid.push([]);
-    for (let x = 0; x < cols; x++) {
-      newGrid[y].push(0);
-    }
-  }
-  return newGrid;
-}
-
-// function generateRandomGrid(cols, rows) {
-//   let newGrid = [];
-//   for (let y = 0; y < rows; y++) {
-//     newGrid.push([]);
-//     for (let x = 0; x < cols; x++) {
-//       if (random(100) < 50) {
-//         newGrid[y].push(0);
-//       }
-//       else {
-//         newGrid[y].push(1);
-//       }
-//     }
-//   }
-//   return newGrid;
-// }
 
