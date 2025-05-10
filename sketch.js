@@ -12,7 +12,8 @@
 // step 4 - create a function to detect whether the connceted dots are the same color
 
 // log
-// may 7th - researching abotu animations
+// may 7th - researching about animations
+// may 9th - deep research about text files
 
 const CHESSBOARD_DIMENSIONS =3; // 8x8 chess board
 let cellSize;                     
