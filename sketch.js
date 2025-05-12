@@ -14,6 +14,7 @@
 // log
 // may 7th - researching about animations
 // may 9th - deep research about text files
+// May 12th, research about game rules.
 
 const CHESSBOARD_DIMENSIONS =3; // 8x8 chess board
 let cellSize;                     
