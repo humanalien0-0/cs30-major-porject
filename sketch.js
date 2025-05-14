@@ -36,9 +36,6 @@ function draw() {
   //drawPieces();
 }
 
-// function initialBoard() {
-
-// }
 function calculateBoardDimensions() {
   // Size board based on smaller size
   const MINI_DIMENSIONS = min(width, height);
@@ -47,6 +44,25 @@ function calculateBoardDimensions() {
   // Center the board
   xOffset = (width - cellSize * CHESSBOARD_DIMENSIONS) / 2;
   yOffset = (height - cellSize * CHESSBOARD_DIMENSIONS) / 2;
+}
+
+
+function initialBoard() {
+  // draw empty chess board
+  board = [];
+  for (let y = 0; y < CHESSBOARD_DIMENSIONS; y++) {
+    let row = [];
+    for (let x = 0; x < CHESSBOARD_DIMENSIONS; x++) {
+      row.push(null);
+    }
+    board.push(row);
+  }
+
+  for (let i = 0; i < CHESSBOARD_DIMENSIONS; i++) {
+    board[i][0] = board[i][2] = dots[i];
+  }
+  console.log(board[0][1]);
+
 }
 
 function drawBoard() {
@@ -64,25 +80,6 @@ function drawBoard() {
   }
 }
 
-
-function initialBoard() {
-
-  // draw empty chess board
-  board = [];
-  for (let y = 0; y < CHESSBOARD_DIMENSIONS; y++) {
-    let row = [];
-    for (let x = 0; x < CHESSBOARD_DIMENSIONS; x++) {
-      row.push(null);
-    }
-    board.push(row);
-  }
-
-  for (let i = 0; i < CHESSBOARD_DIMENSIONS; i++) {
-    board[i][0] = board[i][2] = dots[i];
-  }
-  console.log(board[0][1]);
-
-}
 function generateGrid(cols, rows) {
   let newGrid = [];
   for (let y = 0; y < rows; y++) {
@@ -121,7 +118,4 @@ function displayPiece(piece, x, y, row, col) {
   const CENTER_PIECE_Y = y + cellSize / 2 - IMG_SIZE / 2;
   image(IMG, CENTER_PIECE_X, CENTER_PIECE_Y, IMG_SIZE, IMG_SIZE);// center and scale piece
 }
-
-
-//////////////////////////////////////////////////////////////////////
 
