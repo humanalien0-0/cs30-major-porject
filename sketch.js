@@ -15,7 +15,7 @@
 // may 7th - researching about animations
 // may 9th - deep research about text files
 // May 12th, research about game rules.
-
+// May 13th, trying to implement 2D collision detection 
 const CHESSBOARD_DIMENSIONS =3; // 8x8 chess board
 let cellSize;                     
 let board = [];                  
