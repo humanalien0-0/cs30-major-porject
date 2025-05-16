@@ -33,7 +33,7 @@ function setup() {
 function draw() {
   background(20, 50, 100);
   drawBoard();
-  //drawPieces();
+  drawPieces();
 }
 
 function calculateBoardDimensions() {
@@ -75,7 +75,7 @@ function drawBoard() {
       
       stroke("white");
       fill("black");// draw white and black squares alternately
-      rect(xOffset + col * cellSize, yOffset + row * cellSize, cellSize, cellSize);//offset used to center the chess board
+      rect(xOffset + col * cellSize, yOffset + row * cellSize, cellSize);//offset used to center the chess board
     }
   }
 }
@@ -98,15 +98,30 @@ function drawPieces() {
       if (PIECE) {
         const X_COR = xOffset + col * cellSize;
         const Y_COR = yOffset + row * cellSize;
-        displayPiece(PIECE, X_COR, Y_COR, row, col);
+        displayPiece(PIECE, X_COR, Y_COR);
       }
     }
   }
 }
 
 // Draws an individual piece and increases the size of a piece when selected
-function displayPiece(x, y, row, col) {
-  const THE_DOT = circle();
-
+function displayPiece(x, y) {
+  const IMG_SIZE = cellSize * 0.4;
+  const CENTER_PIECE_X = x + cellSize / 2 - IMG_SIZE / 2;
+  const CENTER_PIECE_Y = y + cellSize / 2 - IMG_SIZE / 2;
+  circle (CENTER_PIECE_X, CENTER_PIECE_Y, IMG_SIZE);
 }
 
+// function displayPiece(piece, x, y, row, col) {
+//   const IMG = piece.color === "white" ? whitePieces[piece.type] : blackPieces[piece.type];
+  
+//   // setting up constants to change the size of the piece if selected 
+//   const IS_SELECTED = selectedPiece && selectedRow === row && selectedCol === col;
+//   const SCALE_OF_PIECES = IS_SELECTED ? selectedPieceScale : defaultPieceScale;
+//   const IMG_SIZE = cellSize * SCALE_OF_PIECES;
+  
+//   // setting up constants to center the piece in its square
+//   const CENTER_PIECE_X = x + cellSize / 2 - IMG_SIZE / 2;
+//   const CENTER_PIECE_Y = y + cellSize / 2 - IMG_SIZE / 2;
+//   image(IMG, CENTER_PIECE_X, CENTER_PIECE_Y, IMG_SIZE, IMG_SIZE);// center and scale piece
+// }
