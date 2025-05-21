@@ -16,6 +16,8 @@
 // may 9th - deep research about text files
 // May 12th, research about game rules.
 // May 13th, trying to implement 2D collision detection 
+// May 20th, succeeded in displaying the dots
+
 const CHESSBOARD_DIMENSIONS =3; // 8x8 chess board
 let cellSize;                     
 let board = [];                  
