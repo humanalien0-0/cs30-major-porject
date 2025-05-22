@@ -18,112 +18,77 @@
 // May 13th, trying to implement 2D collision detection 
 // May 20th, succeeded in displaying the dots
 
-const CHESSBOARD_DIMENSIONS =3; // 8x8 chess board
+const GRID_DIMENSIONS = 3;
 let cellSize;                     
-let board = [];                  
-let xOffset, yOffset;// offsets for centering the board
+let mainGrid = [];                  
+let xOffset, yOffset;
 
-let dots = ["r", "g", "b"];
-
+let dots = ["red", "green", "blue"];
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
-  calculateBoardDimensions(); // Calculate initial board dimensions
-  initialBoard(); // Set up starting piece positions
+  calculateGridDimensions();
+  initialGrid();
 }
 
 function draw() {
   background(20, 50, 100);
-  drawBoard();
-  drawPieces();
+  drawGrid();
+  drawDots();
 }
 
-function calculateBoardDimensions() {
-  // Size board based on smaller size
+function calculateGridDimensions() {
   const MINI_DIMENSIONS = min(width, height);
-  cellSize = MINI_DIMENSIONS / CHESSBOARD_DIMENSIONS * 0.9; // 90% of available space
-  
-  // Center the board
-  xOffset = (width - cellSize * CHESSBOARD_DIMENSIONS) / 2;
-  yOffset = (height - cellSize * CHESSBOARD_DIMENSIONS) / 2;
+  cellSize = MINI_DIMENSIONS / GRID_DIMENSIONS * 0.9;
+  xOffset = (width - cellSize * GRID_DIMENSIONS) / 2;
+  yOffset = (height - cellSize * GRID_DIMENSIONS) / 2;
 }
 
-
-function initialBoard() {
-  // draw empty chess board
-  board = [];
-  for (let y = 0; y < CHESSBOARD_DIMENSIONS; y++) {
+function initialGrid() {
+  for (let y = 0; y < GRID_DIMENSIONS; y++) {
     let row = [];
-    for (let x = 0; x < CHESSBOARD_DIMENSIONS; x++) {
+    for (let x = 0; x < GRID_DIMENSIONS; x++) {
       row.push(null);
     }
-    board.push(row);
+    mainGrid.push(row);
   }
 
-  for (let i = 0; i < CHESSBOARD_DIMENSIONS; i++) {
-    board[i][0] = board[i][2] = dots[i];
+  for (let i = 0; i < GRID_DIMENSIONS; i++) {
+    mainGrid[i][0] = mainGrid[i][2] = dots[i];
   }
-  console.log(board[0][1]);
-
 }
 
-function drawBoard() {
-  rectMode(CORNER); // Draw from top-left corner
-  stroke(0);//boarders for the chess squares
+function drawGrid() {
+  rectMode(CORNER);
+  stroke(255);  
   strokeWeight(1);
-  
-  for (let row = 0; row < CHESSBOARD_DIMENSIONS; row++) {
-    for (let col = 0; col < CHESSBOARD_DIMENSIONS; col++) {
-      
-      stroke("white");
-      fill("black");// draw white and black squares alternately
-      rect(xOffset + col * cellSize, yOffset + row * cellSize, cellSize);//offset used to center the chess board
+
+  for (let row = 0; row < GRID_DIMENSIONS; row++) {
+    for (let col = 0; col < GRID_DIMENSIONS; col++) {
+      fill("black");   // make all squares black
+      rect(xOffset + col * cellSize, yOffset + row * cellSize, cellSize, cellSize);
     }
   }
 }
 
-function generateGrid(cols, rows) {
-  let newGrid = [];
-  for (let y = 0; y < rows; y++) {
-    newGrid.push([]);
-    for (let x = 0; x < cols; x++) {
-      newGrid[y].push(0);
-    }
-  }
-  return newGrid;
-}
-
-function drawPieces() {
-  for (let row = 0; row < CHESSBOARD_DIMENSIONS; row++) {
-    for (let col = 0; col < CHESSBOARD_DIMENSIONS; col++) {
-      const PIECE = board[row][col];
-      if (PIECE) {
-        const X_COR = xOffset + col * cellSize;
-        const Y_COR = yOffset + row * cellSize;
-        displayPiece(PIECE, X_COR, Y_COR);
+function drawDots() {
+  for (let row = 0; row < GRID_DIMENSIONS; row++) {
+    for (let col = 0; col < GRID_DIMENSIONS; col++) {
+      const dotColor = mainGrid[row][col];// get the colour of the dot
+      if (dotColor) {  // if there is a dot dot of any colour passed in...
+        const x = xOffset + col * cellSize;
+        const y = yOffset + row * cellSize;
+        displayDots(dotColor, x, y);
       }
     }
   }
 }
 
-// Draws an individual piece and increases the size of a piece when selected
-function displayPiece(x, y) {
-  const IMG_SIZE = cellSize * 0.4;
-  const CENTER_PIECE_X = x + cellSize / 2 - IMG_SIZE / 2;
-  const CENTER_PIECE_Y = y + cellSize / 2 - IMG_SIZE / 2;
-  circle (CENTER_PIECE_X, CENTER_PIECE_Y, IMG_SIZE);
+function displayDots(color, x, y) {
+  const SIZE = cellSize * 0.4;
+  const centerX = x + cellSize / 2;
+  const centerY = y + cellSize / 2;
+  fill(color);
+  noStroke();
+  circle(centerX, centerY, SIZE);
 }
-
-// function displayPiece(piece, x, y, row, col) {
-//   const IMG = piece.color === "white" ? whitePieces[piece.type] : blackPieces[piece.type];
-  
-//   // setting up constants to change the size of the piece if selected 
-//   const IS_SELECTED = selectedPiece && selectedRow === row && selectedCol === col;
-//   const SCALE_OF_PIECES = IS_SELECTED ? selectedPieceScale : defaultPieceScale;
-//   const IMG_SIZE = cellSize * SCALE_OF_PIECES;
-  
-//   // setting up constants to center the piece in its square
-//   const CENTER_PIECE_X = x + cellSize / 2 - IMG_SIZE / 2;
-//   const CENTER_PIECE_Y = y + cellSize / 2 - IMG_SIZE / 2;
-//   image(IMG, CENTER_PIECE_X, CENTER_PIECE_Y, IMG_SIZE, IMG_SIZE);// center and scale piece
-// }
