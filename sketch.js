@@ -18,7 +18,7 @@
 // May 13th, trying to implement 2D collision detection 
 // May 20th, succeeded in displaying the dots
 
-const GRID_DIMENSIONS = 3;
+const GRID_DIMENSIONS = 5;
 let cellSize;
 let mainGrid = [];
 let xOffset, yOffset;
@@ -26,7 +26,7 @@ let dragPath = [];
 let dragColor = null;
 let isDragging = false;
 
-let dots = ["red", "green", "blue"];
+let dots = ["red", "green", "blue", "yellow", "orange", "white"];
 let completedPaths = []; // Stores valid finished paths
 
 function setup() {
@@ -60,7 +60,7 @@ function initialGrid() {
   }
 
   for (let i = 0; i < GRID_DIMENSIONS; i++) {
-    mainGrid[i][0] = mainGrid[i][2] = dots[i];
+    mainGrid[i][0] = mainGrid[i][GRID_DIMENSIONS-1] = dots[i];
   }
 }
 
