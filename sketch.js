@@ -17,6 +17,7 @@
 // May 12th, research about game rules.
 // May 13th, trying to implement 2D collision detection 
 // May 20th, succeeded in displaying the dots
+// may 26th, problem solving when using a bigger grid
 
 const GRID_DIMENSIONS = 5;
 let cellSize;
