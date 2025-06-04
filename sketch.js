@@ -19,6 +19,7 @@
 // May 20th, succeeded in displaying the dots
 // may 26th, problem solving when using a bigger grid
 // May 28th, found the error that is caused when the grid is expanded. going through different intro screens
+// May 30th, trying to read through an intro screen code and implement it 
 
 const GRID_DIMENSIONS = 5;
 let cellSize;
@@ -63,7 +64,9 @@ function initialGrid() {
 
   for (let i = 0; i < GRID_DIMENSIONS; i++) {
     mainGrid[i][0] = mainGrid[i][GRID_DIMENSIONS-1] = dots[i];
+    
   }
+
 }
 
 function drawGrid() {
@@ -231,7 +234,7 @@ function drawDragPath() {
     return;
   }
   stroke(dragColor);
-  strokeWeight(6);
+  strokeWeight(20);
   noFill();
   beginShape();
   for (let pt of dragPath) {
@@ -244,7 +247,7 @@ function drawDragPath() {
 function drawCompletedPaths() {
   for (let p of completedPaths) {
     stroke(p.color);
-    strokeWeight(6);
+    strokeWeight(20);
     noFill();
     beginShape();
     for (let pt of p.path) {
