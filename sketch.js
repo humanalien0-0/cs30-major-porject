@@ -20,6 +20,7 @@
 // may 26th, problem solving when using a bigger grid
 // May 28th, found the error that is caused when the grid is expanded. going through different intro screens
 
+
 const GRID_DIMENSIONS = 5;
 let cellSize;
 let mainGrid = [];
