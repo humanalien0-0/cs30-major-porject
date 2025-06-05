@@ -32,6 +32,8 @@ let isDragging = false;
 let dots = ["red", "green", "blue", "yellow", "orange", "white"];
 let completedPaths = []; // Stores valid finished paths
 
+let whatPhase = "starting phase";
+
 function setup() {
   createCanvas(windowWidth, windowHeight);
   calculateGridDimensions();
@@ -39,11 +41,18 @@ function setup() {
 }
 
 function draw() {
-  background(20, 50, 100);
-  drawGrid();
-  drawDots();
-  drawCompletedPaths();
-  drawDragPath();
+  // for now im gonna switch in here because the starting screen is not done yet
+  if (whatPhase === "starting phase"){ 
+    background(20, 50, 100);
+    drawGrid();
+    drawDots();
+    drawCompletedPaths();
+    drawDragPath();
+  }
+  else if (whatPhase === "connect phase"){
+    startScreen();
+  }
+
 }
 
 function calculateGridDimensions() {
@@ -278,7 +287,6 @@ function removePath(pathObj) {
 }
 
 ////////////////////////////////////////////////////////////////////////
-
 
 function startScreen(){
   let buttonX = width/2; //x-coordinate of button
