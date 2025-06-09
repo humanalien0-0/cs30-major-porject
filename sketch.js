@@ -21,7 +21,7 @@
 // May 28th, found the error that is caused when the grid is expanded. going through different intro screens
 // May 30th, trying to read through an intro screen code and implement it 
 
-const GRID_DIMENSIONS = 5;
+const GRID_DIMENSIONS = 6;
 let cellSize;
 let mainGrid = [];
 let xOffset, yOffset;
@@ -29,7 +29,7 @@ let dragPath = [];
 let dragColor = null;
 let isDragging = false;
 
-let dots = ["red", "green", "blue", "yellow", "orange", "white"];
+let dots = ["red", "green", "blue", "yellow", "orange", "white", "purple"];
 let completedPaths = []; // Stores valid finished paths
 
 let whatPhase = "starting phase";
@@ -288,63 +288,3 @@ function removePath(pathObj) {
 
 ////////////////////////////////////////////////////////////////////////
 
-function startScreen(){
-  let buttonX = width/2; //x-coordinate of button
-  let buttonY = 3/5 * height; //y-coordinate of button
-  background(150);
-
-  let fontSize = map(width, 0, 1000, 10, 65); // calculating responsive font size
-
-  //the mouse animation
-  ////////////////////////////
-  rectMode(CENTER);
-  for(let y = 0; y < rows; y++){
-    size[y] = [];
-    for(let x= 0; x < cols; x++){
-      size[y][x] = dist(mouseX,mouseY, spacing/2 + x * spacing, spacing/2 + y * spacing) * scale;
-    }
-  }
-  
-  for(let y = 0; y < rows; y++){
-    for(let x= 0; x < cols; x++){
-      fill(30);
-      noStroke();
-      rect(spacing/2 + x * spacing, spacing/2 + y * spacing, size[y][x], size[y][x] );
-
-    }
-  }
-  ////////////////////////////
-
-  //Title text
-  fill(255);
-  textFont(myFont);
-  textAlign(CENTER, CENTER);
-  textSize(fontSize);
-  text("Zombie shooter", width / 2, height / 2 - 100); 
-
-  //button hovered
-  if(mouseX < buttonX + 200 && mouseX > buttonX - 200 && mouseY > buttonY - 50 && mouseY < buttonY + 50){
-    fill(255);
-    rect(buttonX, buttonY ,300 ,70 ,50);
-    fill(0);
-    textSize(15);
-    text("Start", buttonX, buttonY);  
-
-    if(mouseIsPressed){
-      gameState = "startGame";
-    }
-  }
-
-  //button normal
-  else{
-    //button
-    fill(0);
-    rectMode(CENTER);
-    rect(buttonX,buttonY ,300 ,70 ,50); //draw button 
-    
-    //button text
-    fill(255);
-    textSize(15);
-    text("Start", buttonX, buttonY);
-  }
-}
