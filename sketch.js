@@ -51,10 +51,22 @@ const MAX_BALLS = 40;
 let spawnInterval = 1000; // spawn every 1000ms = 1 second
 let lastSpawnTime = 0;
 
+//winner screen
+let showFireworks = false;
+let launchIntervalFast, launchIntervalSlow;
+let fireworks = [];
+let launchers = [];
+let duration = 3000; // 3 seconds
+let fastInterval = 300;  // 0.3 seconds
+let slowInterval = 1500;  // 0.5 seconds
+
+const NUMBER_OF_FIREWORKS_PER_CLICK = 20;
+
+
 let levels = [
   {
     gridSize: 3,
-    timeLimit: 500000,
+    timeLimit: 5000,
     dots: [
       {row: 0, col: 0, color: "red"}, {row: 0, col: 2, color: "red"},
       {row: 1, col: 0, color: "green"}, {row: 1, col: 2, color: "green"},
@@ -64,7 +76,7 @@ let levels = [
   },
   {
     gridSize: 5,
-    timeLimit: 500000,
+    timeLimit: 10000,
     dots: [
       {row: 0, col: 1, color: "red"}, {row: 3, col: 0, color: "red"},
       {row: 0, col: 2, color: "green"}, {row: 3, col: 2, color: "green"},
@@ -76,7 +88,7 @@ let levels = [
   },
   {
     gridSize: 5,
-    timeLimit: 500000,
+    timeLimit: 9000,
     dots: [
       {row: 0, col: 3, color: "red"}, {row: 3, col: 0, color: "red"},
       {row: 0, col: 4, color: "green"}, {row: 2, col: 2, color: "green"},
@@ -90,7 +102,7 @@ let levels = [
   },
   {
     gridSize: 5,
-    timeLimit: 500000,
+    timeLimit: 8000,
     dots: [
       {row: 1, col: 0, color: "red"}, {row: 3, col: 4, color: "red"},
       {row: 0, col: 4, color: "blue"}, {row: 2, col: 4, color: "blue"},
@@ -109,7 +121,7 @@ let levels = [
   },
   {
     gridSize: 6,
-    timeLimit: 500000,
+    timeLimit: 12000,
     dots: [
       {row: 0, col: 0, color: "green"}, {row: 5, col: 3, color: "green"},
       {row: 0, col: 2, color: "red"}, {row: 4, col: 3, color: "red"},
@@ -145,35 +157,34 @@ function setup() {
   textFont(pixelFont);
   // Add one starting node in the center
   balls.push(new MovingPoint(width / 2, height / 2));
-}
 
+  colorMode(RGB);
+}
 
 function draw() {
   background(20, 80, 100);
 
-  if (whatPhase === "start screen") {
-    startScreen();  // Use the separate function to draw the start screen
+  if      (whatPhase === "start screen")  {
+    startScreen();
   }
-
   else if (whatPhase === "connect phase") {
     updateTimer();
     drawTimer();
-
     drawGrid();
     drawCompletedPaths();
     drawDragPath();
     drawDots();
-
     if (timeRemaining <= 0) {
-      whatPhase = "outro screen"; // Go back to start if time runs out
+      whatPhase = "outro screen";
     }
   }
-
-  else if (whatPhase === "outro screen") {
-    runVisualBackground();
+  else if (whatPhase === "outro screen")  {
+    runOutroScreen();
+  }
+  else if (whatPhase === "win screen")    {
+    runWinScreen();
   }
 }
-
 
 function calculateGridDimensions() {
   const MINI_DIMENSIONS = min(width, height);
@@ -264,7 +275,6 @@ function loadLevel(levelIndex) {
   completedPaths = [];
 }
 
-
 // 3) In your draw phase, render blockade-cells specially:
 function drawGrid() {
   rectMode(CORNER);
@@ -330,6 +340,7 @@ function displayDots(color, x, y) {
 
 // 1) Start a drag only on a dot‐endpoint
 function mousePressed() {
+
   const { row, col } = getCellFromMouse();
   if (!isInsideGrid(row, col)) {
     return;
@@ -343,6 +354,7 @@ function mousePressed() {
     dragColor = c;
     dragPath = [{ row, col }];
   }
+
 }
 
 function mouseDragged() {
@@ -437,15 +449,24 @@ function collidesWithExisting(last, newCell) {
   return false;
 }
 
-
 function mouseReleased() {
-  if (whatPhase === "outro screen" && returnHover) {
+  if ((whatPhase === "outro screen" || whatPhase === "win screen") && returnHover) {
+    stopFireworks();
     whatPhase = "start screen";
     currentLevel = 0;
     loadLevel(currentLevel);
-    resetDrag(); // clear any stale drag data
+    resetDrag();
     return;
   }
+  if (whatPhase === "win screen" && returnHover) {
+    stopFireworks(); // <--- stop fireworks now
+    whatPhase = "start screen";
+    currentLevel = 0;
+    loadLevel(currentLevel);
+    resetDrag();
+    return;
+  }
+
   if (whatPhase === "start screen" && startHover) {
     whatPhase = "connect phase";
     levelStartTime = millis();
@@ -493,7 +514,6 @@ function mouseReleased() {
   }
   resetDrag();
 }
-
 
 function getCellFromMouse() {
   const col = floor((mouseX - xOffset) / cellSize);
@@ -589,20 +609,22 @@ function updateTimer() {
 }
 
 function checkWin() {
-  const level = levels[currentLevel];
-  const totalPairs = level.dots.length / 2;
+  const totalPairs = levels[currentLevel].dots.length / 2;
   if (completedPaths.length === totalPairs) {
     if (currentLevel < levels.length - 1) {
+      // Advance to the next level
       currentLevel++;
       loadLevel(currentLevel);
-      levelStartTime = millis();  // Reset timer
+      levelStartTime = millis();
     }
     else {
-      whatPhase = "win screen";  // Game over screen
+      // Last level completed → go to WIN screen
+      whatPhase = "win screen";
+      startFireworks();
     }
   }
+  // NO else branch here
 }
-
 
 
 // this is the outro screen code
@@ -658,12 +680,6 @@ function runVisualBackground() {
 
 }
 
-
-
-// Connected Nodes with Gradient Dots & Dynamic Background
-
-
-
 function updateBackgroundColor() {
   if (balls.length === 0) {
     background(20); // very dark if nothing is on screen
@@ -686,8 +702,6 @@ function updateBackgroundColor() {
   // Darker background with color influence
   background(avgR * 0.5, avgG * 0.5, avgB * 0.5);
 }
-
-
 
 class MovingPoint {
   constructor(x, y) {
@@ -801,4 +815,240 @@ class MovingPoint {
     let vert = lerpColor(GRADIENT_TOP, GRADIENT_BOTTOM, this.y / height);
     this.color = lerpColor(horiz, vert, 0.5);
   }
+}
+
+function startFireworks() {
+  stopFireworks();        // clear any previous intervals
+  showFireworks = true;
+
+  // Fast blasts for 3s
+  launchIntervalFast = setInterval(() => {
+    launchers.push(new Launcher());
+  }, fastInterval);
+
+  setTimeout(() => {
+    clearInterval(launchIntervalFast);
+    // Then slow blasts indefinitely
+    launchIntervalSlow = setInterval(() => {
+      launchers.push(new Launcher());
+    }, slowInterval);
+  }, duration);
+}
+
+function stopFireworks() {
+  showFireworks = false;
+  clearInterval(launchIntervalFast);
+  clearInterval(launchIntervalSlow);
+  launchers = [];
+  fireworks = [];
+}
+
+
+class Particle {
+  constructor(x, y, dx, dy, particleColours) {
+    this.x = x;
+    this.y = y;
+    this.dx = dx;
+    this.dy = dy;
+    this.radius = 3;
+    this.color = particleColours;
+    this.opacity = 255;
+  }
+
+  display() {
+    noStroke();
+    fill(red(this.color), green(this.color), blue(this.color), this.opacity);
+    circle(this.x, this.y, this.radius * 2);
+  }
+
+  update() {
+    this.x += this.dx;
+    this.y += this.dy;
+    this.opacity -= 3.5;
+  }
+
+  isDead() {
+    return this.opacity <= 0;
+  }
+}
+
+class Firework {
+  constructor(x, y, count) {
+    this.particles = [];
+    this.startColor = color(random(255), random(255), random(255));
+    this.endColor = color(random(255), random(255), random(255));
+
+    for (let i = 0; i < count; i++) {
+      let angle = random(TWO_PI);
+      let speed = random(3, 6);
+      let dx = cos(angle) * speed;
+      let dy = sin(angle) * speed;
+
+      let FlightTime = i / count; // from 0 to 1
+      let colours = lerpColor(this.startColor, this.endColor, FlightTime);
+
+      this.particles.push(new Particle(x, y, dx, dy, colours));
+    }
+  }
+
+  update() {
+    for (let p of this.particles) {
+      p.update();
+    }
+    this.particles = this.particles.filter(p => !p.isDead());
+  }
+
+  display() {
+    for (let p of this.particles) {
+      p.display();
+    }
+  }
+
+  isDead() {
+    return this.particles.length === 0;
+  }
+}
+
+class Launcher {
+  constructor() {
+    this.x = width / 2;
+    this.y = height *7/8;
+    this.angle = random(-PI / 4, -3 * PI / 4); // mostly upward, some spread
+    this.speed = random(8, 10);
+    this.dx = cos(this.angle) * this.speed;
+    this.dy = sin(this.angle) * this.speed;
+    this.trail = [];
+    this.maxTrail = 3;
+    this.exploded = false;
+  }
+
+  update() {
+    if (this.exploded) {
+      return;
+    }
+
+    this.trail.push({ x: this.x, y: this.y });
+    if (this.trail.length > this.maxTrail) {
+      this.trail.shift();
+    }
+
+    this.x += this.dx;
+    this.y += this.dy;
+
+    // explosion trigger condition
+    if (this.y < random(height / 4, height / 3)) {
+      fireworks.push(new Firework(this.x, this.y, NUMBER_OF_FIREWORKS_PER_CLICK));
+      this.exploded = true;
+    }
+  }
+
+  display() {
+    if (this.exploded) {
+      return;
+    }
+
+    noFill();
+    stroke(255);
+    for (let i = 1; i < this.trail.length; i++) {
+      let a = this.trail[i - 1];
+      let b = this.trail[i];
+      stroke(255, map(i, 0, this.trail.length, 50, 1));
+      line(a.x, a.y, b.x, b.y);
+    }
+
+    noStroke();
+    fill(255);
+    circle(this.x, this.y, 5);
+  }
+
+  isDead() {
+    return this.exploded;
+  }
+}
+
+function runWinScreen() {
+  background(0);
+
+  // Fireworks animation
+  updateFireworks();
+
+  // YOU WIN text
+  textAlign(CENTER, CENTER);
+  fill(255);
+  textSize(80);
+  text("🎉 YOU WIN! 🎉", width/2, height/2 - 150);
+  textSize(40);
+  text(`Levels Completed: ${levels.length}`, width/2, height/2 - 70);
+
+  // Return button
+  returnHover = mouseX > buttonX - buttonWidth
+             && mouseX < buttonX + buttonWidth
+             && mouseY > buttonY - buttonHeight/2
+             && mouseY < buttonY + buttonHeight/2;
+
+  fill(returnHover ? 255 : 0);
+  rectMode(CENTER);
+  rect(buttonX, buttonY, buttonWidth*2, buttonHeight, radius);
+  noStroke();
+  fill(returnHover ? 0 : 255);
+  textSize(28);
+  text("Return to Start", buttonX, buttonY);
+}
+
+function updateFireworks() {
+  if (!showFireworks) return;
+
+  // Launchers
+  for (let l of launchers) {
+    l.update();  l.display();
+  }
+  launchers = launchers.filter(l => !l.isDead());
+
+  // Burst particles
+  for (let fw of fireworks) {
+    fw.update();  fw.display();
+  }
+  fireworks = fireworks.filter(fw => !fw.isDead());
+}
+
+
+function runOutroScreen() {
+  updateBackgroundColor();
+  for (let ball of balls) {
+    ball.update();
+    ball.display();
+  }
+  // spawn new points...
+  if (millis() - lastSpawnTime > spawnInterval && balls.length < MAX_BALLS) {
+    balls.push(new MovingPoint(random(width), random(height)));
+    lastSpawnTime = millis();
+  }
+  // draw connections...
+  for (let i = 0; i < balls.length; i++) {
+    for (let j = i + 1; j < balls.length; j++) {
+      balls[i].connectTo(balls[j]);
+    }
+  }
+
+  // GAME OVER text
+  textAlign(CENTER, CENTER);
+  fill(255);
+  textSize(80);
+  text("GAME OVER", width/2, height/2 - 150);
+  textSize(40);
+  text(`Levels Completed: ${currentLevel}`, width/2, height/2 - 70);
+
+  // Return button
+  returnHover = mouseX > buttonX - buttonWidth
+             && mouseX < buttonX + buttonWidth
+             && mouseY > buttonY - buttonHeight/2
+             && mouseY < buttonY + buttonHeight/2;
+
+  fill(returnHover ? 255 : 0);
+  rectMode(CENTER);
+  rect(buttonX, buttonY, buttonWidth*2, buttonHeight, radius);
+  noStroke();
+  fill(returnHover ? 0 : 255);
+  textSize(28);
+  text("Return to Start", buttonX, buttonY);
 }
