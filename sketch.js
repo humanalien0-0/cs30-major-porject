@@ -2,14 +2,11 @@
 // Ranu Jayawickrama
 // April 17th
 
-// Extra for Experts:
-// - describe what you did to take this project "above and beyond"
-
-// Happy connect procedure
-// step 1 - create a square grid with pairs of dots with the same color placed in it
-// step 2 - create a function to control the path of the dots with the mouse
-// step 3 - create a function to display the path of the selcted dot
-// step 4 - create a function to detect whether the connceted dots are the same color
+// things to do////////////////////////
+// commenting
+// reflections
+// create feedback.md
+// sound effects
 
 
 
@@ -24,6 +21,13 @@ let spacing = 30;    // spacing between animation rectangles
 let scaleAnim = 0.15;  // scale factor for rectangle sizes
 let cols, rows;
 let sizeGrid = [];
+
+let instructionsHover = false;
+let showInstructions = false;
+let instructionsButtonX, instructionsButtonY;
+let instructionsBoxWidth = 600;
+let instructionsBoxHeight = 180;
+
 
 let buttonX, buttonY, buttonWidth = 320, buttonHeight = 70, radius = 40;
 let levelStartTime;
@@ -53,7 +57,7 @@ let lastSpawnTime = 0;
 
 //winner screen
 let showFireworks = false;
-let launchIntervalFast, launchIntervalSlow;
+let winFastInterval, winSlowInterval;
 let fireworks = [];
 let launchers = [];
 let duration = 3000; // 3 seconds
@@ -61,6 +65,9 @@ let fastInterval = 300;  // 0.3 seconds
 let slowInterval = 1500;  // 0.5 seconds
 
 const NUMBER_OF_FIREWORKS_PER_CLICK = 20;
+
+let currentLevel = 0;
+let pixelFont;
 
 
 let levels = [
@@ -136,15 +143,18 @@ let levels = [
   }
 ];
 
-let currentLevel = 0;
-let pixelFont;
 function preload() {
   pixelFont = loadFont('PressStart2P.ttf');
 }
+
 function setup() {
   createCanvas(windowWidth, windowHeight);
   buttonX = width / 2;
   buttonY = height / 2 + 50;
+  instructionsButtonX = width / 2;
+  textSize(20);
+  instructionsButtonY = buttonY + buttonHeight  + 10;  // below "Start Game" button
+
   calculateGridDimensions();
   loadLevel(currentLevel);
   whatPhase = "start screen";
@@ -164,7 +174,7 @@ function setup() {
 function draw() {
   background(20, 80, 100);
 
-  if      (whatPhase === "start screen")  {
+  if (whatPhase === "start screen")  {
     startScreen();
   }
   else if (whatPhase === "connect phase") {
@@ -227,8 +237,6 @@ function startScreen() {
   textAlign(CENTER, CENTER);
   textSize(80);
   text("Happy Connect", width / 2, height / 2 - 80);
-  textSize(15);
-  text("Drag & Connect", width / 2, height / 2 + 120);
 
   // Draw start button
   startHover = mouseX > buttonX - buttonWidth/2 &&
@@ -244,6 +252,44 @@ function startScreen() {
   textSize(startHover ? 28 : 24);
   textAlign(CENTER, CENTER);
   text("Start Game", buttonX, buttonY);
+
+  // --- Instructions Button ---
+  instructionsHover = mouseX > instructionsButtonX - buttonWidth / 2 &&
+                    mouseX < instructionsButtonX + buttonWidth / 2 &&
+                    mouseY > instructionsButtonY - buttonHeight / 2 &&
+                    mouseY < instructionsButtonY + buttonHeight / 2;
+
+  fill(instructionsHover ? 255 : 0);
+  rect(instructionsButtonX, instructionsButtonY, buttonWidth, buttonHeight, radius);
+  fill(instructionsHover ? 0 : 255);
+  textSize(instructionsHover ? 22 : 20);
+  textAlign(CENTER, CENTER);
+  text("Instructions", instructionsButtonX, instructionsButtonY);
+
+  // --- Instruction Panel ---
+  if (instructionsHover) {
+    let boxWidth = 700;
+    let boxHeight = 150;
+    let boxX = width / 2;
+    let boxY = instructionsButtonY + 140;
+
+    fill(0, 200);
+    rectMode(CENTER);
+    rect(boxX, boxY, boxWidth, boxHeight, 20);
+
+    fill(255);
+    textAlign(CENTER, CENTER);
+    textSize(14);
+
+    let instructionsText = "Drag from one colored dot to its matching pair\n" +
+                         "Fill the entire grid before time runs out\n" +
+                         "Erase a trail by click its matching dots.\n" +
+                         "The + block is a 4-way junction with no turns.\n" +
+                         "The X block is a closed road\n";
+
+    text(instructionsText, boxX, boxY, boxWidth - 40, boxHeight - 40);
+  }
+
 }
 
 function loadLevel(levelIndex) {
@@ -369,19 +415,59 @@ function mouseDragged() {
 
   const last = dragPath[dragPath.length - 1];
 
+  // A) Undo/backtrack?
   if (tryBacktrack(last, row, col)) {
     return;
   }
+
+  // B) No revisiting (except xJunction)
   if (blockedDueToRevisit(row, col)) {
     return;
   }
+
   const val = mainGrid[row][col];
+  // ❌ Block metalBlockade
   if (val === "metalBlockade") {
     return;
   }
-  if (!isLegalMove(last, row, col, val)) {
+
+  // ——— NEW: enforce straight‐through on xJunction ———
+  // if the cell you just left is an xJunction, you must keep going in the same direction
+  if (mainGrid[last.row][last.col] === "xJunction" && dragPath.length >= 2) {
+    const prev = dragPath[dragPath.length - 2];
+    // direction vector you came into the junction
+    const prevDirR = last.row  - prev.row;
+    const prevDirC = last.col  - prev.col;
+    // direction vector you’d go out
+    const newDirR  = row     - last.row;
+    const newDirC  = col     - last.col;
+    // if it’s not exactly the same vector, disallow
+    if (newDirR !== prevDirR || newDirC !== prevDirC) {
+      return;
+    }
+  }
+  if (dots.includes(mainGrid[last.row][last.col]) && dragPath.length >= 2) {
+    const prev = dragPath[dragPath.length - 2];
+    const prevDirR = last.row  - prev.row;
+    const prevDirC = last.col  - prev.col;
+    const newDirR  = row     - last.row;
+    const newDirC  = col     - last.col;
+
+    // If you try to continue after hitting a colored dot → block it
+    if (newDirR !== 0 || newDirC !== 0) {
+      return;
+    }
+  }
+
+  // C) Must be adjacent & either empty, same color, or junction
+  if (
+    !cellsAreAdjacent(last.row, last.col, row, col) ||
+    !(val === null || val === dragColor || val === "xJunction")
+  ) {
     return;
   }
+
+  // D) Collision detection with existing completed paths
   if (collidesWithExisting(last, { row, col })) {
     return;
   }
@@ -450,7 +536,7 @@ function collidesWithExisting(last, newCell) {
 }
 
 function mouseReleased() {
-  if ((whatPhase === "outro screen" || whatPhase === "win screen") && returnHover) {
+  if (whatPhase === "outro screen" && returnHover) {
     stopFireworks();
     whatPhase = "start screen";
     currentLevel = 0;
@@ -458,8 +544,17 @@ function mouseReleased() {
     resetDrag();
     return;
   }
+
   if (whatPhase === "win screen" && returnHover) {
-    stopFireworks(); // <--- stop fireworks now
+    // stop the win-screen fireworks
+    clearInterval(winFastInterval);
+    clearInterval(winSlowInterval);
+    launchers = [];
+    fireworks = [];
+    showFireworks = false;
+    
+
+    // reset the game
     whatPhase = "start screen";
     currentLevel = 0;
     loadLevel(currentLevel);
@@ -585,11 +680,33 @@ function removePath(pathObj) {
 }
 
 function drawTimer() {
+  const barWidth = 300;
+  const barHeight = 20;
+  const margin = 30;
+
+  // Position
+  const x = width - barWidth - margin;
+  const y = margin;
+
+  // Percent of time left
+  const percentLeft = timeRemaining / levelTimeLimit;
+
+  // Background bar
+  noStroke();
+  fill(80);
+  rect(x, y, barWidth, barHeight);
+
+  // Foreground bar (health)
+  fill(lerpColor(color(255, 0, 0), color(0, 255, 0), percentLeft));  // red to green
+  rect(x, y, barWidth * percentLeft, barHeight);
+
+  // Optional: add text
   fill(255);
-  textSize(24);
-  textAlign(RIGHT, TOP);
-  text(`Time Left: ${Math.ceil(timeRemaining / 1000)}`, width - 20, 20);
+  textAlign(RIGHT, CENTER);
+  textSize(16);
+  text(`Time Left: ${ceil(timeRemaining / 1000)}s`, x + barWidth, y + barHeight + 12);
 }
+
 
 function isGridFull() {
   for (let row = 0; row < gridDimensions; row++) {
@@ -822,14 +939,14 @@ function startFireworks() {
   showFireworks = true;
 
   // Fast blasts for 3s
-  launchIntervalFast = setInterval(() => {
+  winFastInterval = setInterval(() => {
     launchers.push(new Launcher());
   }, fastInterval);
 
   setTimeout(() => {
-    clearInterval(launchIntervalFast);
+    clearInterval(winFastInterval);
     // Then slow blasts indefinitely
-    launchIntervalSlow = setInterval(() => {
+    winSlowInterval = setInterval(() => {
       launchers.push(new Launcher());
     }, slowInterval);
   }, duration);
@@ -837,8 +954,8 @@ function startFireworks() {
 
 function stopFireworks() {
   showFireworks = false;
-  clearInterval(launchIntervalFast);
-  clearInterval(launchIntervalSlow);
+  clearInterval(winFastInterval);
+  clearInterval(winSlowInterval);
   launchers = [];
   fireworks = [];
 }
@@ -967,20 +1084,42 @@ class Launcher {
 }
 
 function runWinScreen() {
-  background(0);
+  // 1) On first entry, kick off the auto–fire sequence:
+  if (!showFireworks) {
+    showFireworks = true;
+    // fast bursts for 3s:
+    winFastInterval = setInterval(() => launchers.push(new Launcher()), fastInterval);
+    setTimeout(() => {
+      clearInterval(winFastInterval);
+      winSlowInterval =
+      setInterval(() => launchers.push(new Launcher()), slowInterval);
+    }, duration);
+  }
 
-  // Fireworks animation
-  updateFireworks();
+  // 2) Fade-trail background (from your desired screen)
+  background(0, 0, 0, 30);
 
-  // YOU WIN text
+  // 3) Update & render launchers + fireworks
+  for (let l of launchers) {
+    l.update();
+    l.display();
+  }
+  launchers = launchers.filter(l => !l.isDead());
+
+  for (let fw of fireworks) {
+    fw.update();
+    fw.display();
+  }
+  fireworks = fireworks.filter(fw => !fw.isDead());
+
+  // 4) YOUR WIN TEXT & RETURN BUTTON
   textAlign(CENTER, CENTER);
   fill(255);
   textSize(80);
-  text("🎉 YOU WIN! 🎉", width/2, height/2 - 150);
+  text("🎉 YOU WIN! 🎉", width / 2, height / 2 - 150);
   textSize(40);
-  text(`Levels Completed: ${levels.length}`, width/2, height/2 - 70);
+  text(`Levels Completed: ${levels.length}`, width / 2, height / 2 - 70);
 
-  // Return button
   returnHover = mouseX > buttonX - buttonWidth
              && mouseX < buttonX + buttonWidth
              && mouseY > buttonY - buttonHeight/2
@@ -988,15 +1127,19 @@ function runWinScreen() {
 
   fill(returnHover ? 255 : 0);
   rectMode(CENTER);
-  rect(buttonX, buttonY, buttonWidth*2, buttonHeight, radius);
+  rect(buttonX, buttonY, buttonWidth * 2, buttonHeight, radius);
+
   noStroke();
   fill(returnHover ? 0 : 255);
   textSize(28);
   text("Return to Start", buttonX, buttonY);
 }
 
+
 function updateFireworks() {
-  if (!showFireworks) return;
+  if (!showFireworks) {
+    return;
+  }
 
   // Launchers
   for (let l of launchers) {
