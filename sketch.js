@@ -1,4 +1,4 @@
-// Multiplayer chess
+// Dot link
 // Ranu Jayawickrama
 // April 17th
 
@@ -21,78 +21,285 @@
 // May 28th, found the error that is caused when the grid is expanded. going through different intro screens
 // May 30th, trying to read through an intro screen code and implement it 
 
-const GRID_DIMENSIONS = 6;
+let gridDimensions = 6;
 let cellSize;
 let mainGrid = [];
 let xOffset, yOffset;
 let dragPath = [];
 let dragColor = null;
 let isDragging = false;
+let spacing = 30;    // spacing between animation rectangles
+let scaleAnim = 0.15;  // scale factor for rectangle sizes
+let cols, rows;
+let sizeGrid = [];
+
+let levelStartTime;
+let levelTimeLimit = 5000; // 5 seconds in milliseconds
+let timeRemaining = levelTimeLimit;
 
 let dots = ["red", "green", "blue", "yellow", "orange", "white", "purple"];
 let completedPaths = []; // Stores valid finished paths
 
 let whatPhase = "starting phase";
 
+let levels = [
+  {
+    gridSize: 3,
+    dots: [
+      {row: 0, col: 0, color: "red"}, {row: 0, col: 2, color: "red"},
+      {row: 1, col: 0, color: "green"}, {row: 1, col: 2, color: "green"},
+      {row: 2, col: 0, color: "blue"}, {row: 2, col: 2, color: "blue"}
+    ],
+    specialBlocks: []
+  },
+  {
+    gridSize: 5,
+    dots: [
+      {row: 0, col: 1, color: "red"}, {row: 3, col: 0, color: "red"},
+      {row: 0, col: 2, color: "green"}, {row: 3, col: 2, color: "green"},
+      {row: 0, col: 3, color: "blue"}, {row: 4, col: 4, color: "blue"},
+      {row: 1, col: 1, color: "yellow"}, {row: 4, col: 0, color: "yellow"},
+      {row: 1, col: 3, color: "orange"}, {row: 4, col: 2, color: "orange"}
+    ],
+    specialBlocks: []
+  },
+  {
+    gridSize: 5,
+    dots: [
+      {row: 0, col: 3, color: "red"}, {row: 3, col: 0, color: "red"},
+      {row: 0, col: 4, color: "green"}, {row: 2, col: 2, color: "green"},
+      {row: 1, col: 2, color: "blue"}, {row: 2, col: 1, color: "blue"},
+      {row: 3, col: 1, color: "yellow"}, {row: 3, col: 3, color: "yellow"},
+      {row: 4, col: 0, color: "orange"}, {row: 3, col: 4, color: "orange"}
+    ],
+    specialBlocks: [
+      {row: 1, col: 3, type: "metalBlockade"}
+    ]
+  },
+  {
+    gridSize: 5,
+    dots: [
+      {row: 1, col: 0, color: "red"}, {row: 3, col: 4, color: "red"},
+      {row: 0, col: 4, color: "blue"}, {row: 2, col: 4, color: "blue"},
+      {row: 3, col: 0, color: "green"}, {row: 4, col: 3, color: "green"}
+    ],
+    specialBlocks: [
+      {row: 0, col: 0, type: "metalBlockade"},
+      {row: 2, col: 0, type: "metalBlockade"},
+      {row: 4, col: 0, type: "metalBlockade"},
+      {row: 4, col: 4, type: "metalBlockade"},
+      {row: 4, col: 1, type: "metalBlockade"},
+      {row: 4, col: 2, type: "metalBlockade"},
+      {row: 1, col: 1, type: "xJunction"},
+      {row: 3, col: 3, type: "xJunction"}
+    ]
+  },
+  {
+    gridSize: 6,
+    dots: [
+      {row: 0, col: 3, color: "green"}, {row: 5, col: 0, color: "green"},
+      {row: 0, col: 5, color: "red"}, {row: 4, col: 1, color: "red"},
+      {row: 1, col: 3, color: "blue"}, {row: 5, col: 2, color: "blue"},
+      {row: 4, col: 5, color: "yellow"}, {row: 5, col: 3, color: "yellow"}
+    ],
+    specialBlocks: [
+      {row: 4, col: 2, type: "xJunction"},
+      {row: 3, col: 4, type: "xJunction"},
+      {row: 1, col: 1, type: "xJunction"}  // will be overwritten by dot
+    ]
+  }
+];
+
+let currentLevel = 0;
+
+
 function setup() {
   createCanvas(windowWidth, windowHeight);
   calculateGridDimensions();
-  initialGrid();
+  loadLevel(currentLevel);
+
 }
 
 function draw() {
-  // for now im gonna switch in here because the starting screen is not done yet
-  if (whatPhase === "starting phase"){ 
+  if (whatPhase === "starting phase") {
+    startScreen();
+  }
+  else if (whatPhase === "connect phase") {
     background(20, 50, 100);
     drawGrid();
     drawDots();
     drawCompletedPaths();
     drawDragPath();
-  }
-  else if (whatPhase === "connect phase"){
-    startScreen();
-  }
 
+    // Timer logic
+    timeRemaining = max(0, levelTimeLimit - (millis() - levelStartTime));
+
+    drawTimer();
+
+    if (timeRemaining <= 0) {
+      // Time's up — restart level or show fail message
+      whatPhase = "starting phase"; // Or implement a "game over" screen
+    }
+
+    // Check win condition
+    if (isGridFull()) {
+      currentLevel++;
+      if (currentLevel < levels.length) {
+        loadLevel(currentLevel);
+        levelStartTime = millis();  // reset timer
+      } else {
+        whatPhase = "starting phase"; // or win screen
+      }
+    }
+  }
 }
+
 
 function calculateGridDimensions() {
   const MINI_DIMENSIONS = min(width, height);
-  cellSize = MINI_DIMENSIONS / GRID_DIMENSIONS * 0.9;
-  xOffset = (width - cellSize * GRID_DIMENSIONS) / 2;
-  yOffset = (height - cellSize * GRID_DIMENSIONS) / 2;
+  cellSize = MINI_DIMENSIONS / gridDimensions * 0.9;
+  xOffset = (width - cellSize * gridDimensions) / 2;
+  yOffset = (height - cellSize * gridDimensions) / 2;
 }
 
-function initialGrid() {
-  for (let y = 0; y < GRID_DIMENSIONS; y++) {
-    let row = [];
-    for (let x = 0; x < GRID_DIMENSIONS; x++) {
+function startScreen() {
+  background(30, 50, 100);
+  rectMode(CENTER);
+
+  // Calculate cols and rows for the animation grid based on canvas size and spacing
+  cols = floor(width / spacing);
+  rows = floor(height / spacing);
+
+  // Calculate size of each rect based on distance to mouse
+  for (let y = 0; y < rows; y++) {
+    sizeGrid[y] = [];
+    for (let x = 0; x < cols; x++) {
+      let posX = spacing / 2 + x * spacing;
+      let posY = spacing / 2 + y * spacing;
+      sizeGrid[y][x] = dist(mouseX, mouseY, posX, posY) * scaleAnim;
+    }
+  }
+
+  // Draw the animated rectangles
+  noStroke();
+  fill(50);
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      let posX = spacing / 2 + x * spacing;
+      let posY = spacing / 2 + y * spacing;
+      rect(posX, posY, sizeGrid[y][x], sizeGrid[y][x]);
+    }
+  }
+
+  // Draw title text
+  fill(255);
+  textAlign(CENTER, CENTER);
+  textSize(48);
+  text("Multiplayer Chess", width / 2, height / 2 - 100);
+
+  // Draw start button
+  let buttonX = width / 2;
+  let buttonY = height / 2 + 50;
+  let buttonWidth = 300;
+  let buttonHeight = 70;
+  let radius = 40;
+
+  // Check if mouse is over the button
+  let isHovered = mouseX > buttonX - buttonWidth / 2 && mouseX < buttonX + buttonWidth / 2 &&
+                  mouseY > buttonY - buttonHeight / 2 && mouseY < buttonY + buttonHeight / 2;
+
+  if (isHovered) {
+    fill(255);
+    rect(buttonX, buttonY, buttonWidth, buttonHeight, radius);
+    fill(0);
+    textSize(24);
+    text("Start Game", buttonX, buttonY);
+
+    if (mouseIsPressed) {
+      whatPhase = "connect phase";  // Switch to main game phase
+      levelStartTime = millis();    // ✅ Initialize the level timer
+    }
+  }
+  else {
+    fill(0);
+    rect(buttonX, buttonY, buttonWidth, buttonHeight, radius);
+    fill(255);
+    textSize(24);
+    text("Start Game", buttonX, buttonY);
+  }
+}
+
+function loadLevel(levelIndex) {
+  const level = levels[levelIndex];
+  gridDimensions = level.gridSize;
+  calculateGridDimensions();
+  mainGrid = [];
+
+  for (let y = 0; y < gridDimensions; y++) {
+    const row = [];
+    for (let x = 0; x < gridDimensions; x++) {
       row.push(null);
     }
     mainGrid.push(row);
   }
 
-  for (let i = 0; i < GRID_DIMENSIONS; i++) {
-    mainGrid[i][0] = mainGrid[i][GRID_DIMENSIONS-1] = dots[i];
-    
+  // Place dots
+  for (const dot of level.dots) {
+    mainGrid[dot.row][dot.col] = dot.color;
   }
 
+  // Place special blocks
+  for (const block of level.specialBlocks) {
+    mainGrid[block.row][block.col] = block.type;
+  }
+
+  completedPaths = [];
 }
 
+
+// 3) In your draw phase, render blockade-cells specially:
 function drawGrid() {
   rectMode(CORNER);
   stroke(255);
   strokeWeight(1);
-  for (let row = 0; row < GRID_DIMENSIONS; row++) {
-    for (let col = 0; col < GRID_DIMENSIONS; col++) {
-      fill("black");
-      rect(xOffset + col * cellSize, yOffset + row * cellSize, cellSize, cellSize);
+
+  for (let row = 0; row < gridDimensions; row++) {
+    for (let col = 0; col < gridDimensions; col++) {
+      const cell = mainGrid[row][col];
+      const x = xOffset + col * cellSize;
+      const y = yOffset + row * cellSize;
+
+      if (cell === "metalBlockade") {
+        fill(80);
+        rect(x, y, cellSize, cellSize);
+        stroke(120);
+        line(x + 5, y + 5, x + cellSize - 5, y + cellSize - 5);
+        line(x + cellSize - 5, y + 5, x + 5, y + cellSize - 5);
+        stroke(255);
+      }
+      else if (cell === "xJunction") {
+        fill(40);
+        rect(x, y, cellSize, cellSize);
+        stroke(200);
+        strokeWeight(4);
+        line(x + cellSize/2, y + 5,      x + cellSize/2, y + cellSize - 5);
+        line(x + 5,        y + cellSize/2, x + cellSize - 5, y + cellSize/2);
+        strokeWeight(1);
+      }
+      else {
+        fill("black");
+        rect(x, y, cellSize, cellSize);
+      }
     }
   }
 }
 
+// Keep drawDots() unchanged: it ignores non-dot strings, so "metalBlockade" won’t get a circle.
+
+
 function drawDots() {
-  for (let row = 0; row < GRID_DIMENSIONS; row++) {
-    for (let col = 0; col < GRID_DIMENSIONS; col++) {
+  for (let row = 0; row < gridDimensions; row++) {
+    for (let col = 0; col < gridDimensions; col++) {
       const dotColor = mainGrid[row][col];
       if (dotColor) {
         const x = xOffset + col * cellSize;
@@ -112,20 +319,22 @@ function displayDots(color, x, y) {
   circle(centerX, centerY, SIZE);
 }
 
+// 1) Start a drag only on a dot‐endpoint
 function mousePressed() {
   const { row, col } = getCellFromMouse();
   if (!isInsideGrid(row, col)) {
     return;
   }
 
-  const color = mainGrid[row][col];
-  if (color) {
+  const c = mainGrid[row][col];
+  if (c && dots.includes(c)) {
     isDragging = true;
-    dragColor = color;
-    dragPath = [{ row, col }];
+    dragColor  = c;
+    dragPath   = [{ row, col }];
   }
 }
 
+// 2) Continue the drag, with full xJunction‐aware collision logic
 function mouseDragged() {
   if (!isDragging) {
     return;
@@ -137,11 +346,8 @@ function mouseDragged() {
   }
 
   const last = dragPath[dragPath.length - 1];
-  if (last.row === row && last.col === col) {
-    return;
-  }
 
-  // Undo step if moving back
+  // A) Undo/backtrack?
   if (
     dragPath.length > 1 &&
     dragPath[dragPath.length - 2].row === row &&
@@ -151,59 +357,90 @@ function mouseDragged() {
     return;
   }
 
+  // B) No revisiting non-junction cells
   if (
-    (mainGrid[row][col] === null || mainGrid[row][col] === dragColor) &&
-    !dragPath.some(p => p.row === row && p.col === col) &&
-    cellsAreAdjacent(last.row, last.col, row, col)
+    !(mainGrid[row][col] === "xJunction") &&
+    dragPath.some(p => p.row === row && p.col === col)
   ) {
-    const newSegA = cellToCenterXY(last);
-    const newSegB = cellToCenterXY({ row, col });
+    return;
+  }
 
-    for (const pathObj of completedPaths) {
-      const pts = pathObj.path;
-      for (let i = 0; i < pts.length - 1; i++) {
-        const segA = cellToCenterXY(pts[i]);
-        const segB = cellToCenterXY(pts[i + 1]);
-        if (collideLineLine(
-          newSegA.x, newSegA.y,
-          newSegB.x, newSegB.y,
-          segA.x, segA.y,
-          segB.x, segB.y
-        )) {
-          removePath(pathObj);
-          // No resetDrag here, so new line stays
-          return;
-        }
+  // C) Must be adjacent and a legal cell
+  const val = mainGrid[row][col];
+  if (
+    !cellsAreAdjacent(last.row, last.col, row, col) ||
+    !(val === null || val === dragColor || val === "xJunction")
+  ) {
+    return;
+  }
+
+  // D) Prepare the new segment coords
+  const newA = cellToCenterXY(last);
+  const newB = cellToCenterXY({ row, col });
+
+  // E) Collision check: skip any test if either segment uses the junction
+  let collisionRemoved = false;
+  for (const pathObj of completedPaths) {
+    const pts = pathObj.path;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const oldA = cellToCenterXY(pts[i]);
+      const oldB = cellToCenterXY(pts[i + 1]);
+
+      const newTouchesJ = last.row === 2 && last.col === 1
+                        || row      === 2 && col      === 1;
+      const oldTouchesJ = pts[i].row === 2 && pts[i].col === 1
+                        || pts[i+1].row === 2 && pts[i+1].col === 1;
+
+      if (newTouchesJ || oldTouchesJ) {
+        // legitimate crossing at xJunction — skip
+        continue;
+      }
+
+      if (collideLineLine(
+        newA.x, newA.y, newB.x, newB.y,
+        oldA.x, oldA.y, oldB.x, oldB.y
+      )) {
+        removePath(pathObj);
+        collisionRemoved = true;
+        break;
       }
     }
-
-    dragPath.push({ row, col });
+    if (collisionRemoved) {
+      break;
+    }
   }
+
+  // F) Finally, add the cell to your drag
+  dragPath.push({ row, col });
 }
 
-
+// 3) Finish the drag: if you landed on a matching endpoint, commit it
 function mouseReleased() {
-  // Pure click = delete endpoint
+  if (!isDragging) {
+    return;
+  }
+
+  // Pure click on an endpoint: toggle its path
   if (dragPath.length === 1) {
     const { row, col } = dragPath[0];
     const color = mainGrid[row][col];
     for (let i = completedPaths.length - 1; i >= 0; i--) {
       const p = completedPaths[i];
-      if (p.color === color) {
-        const start = p.path[0];
-        const end   = p.path[p.path.length - 1];
-        if (start.row === row && start.col === col ||
-            end  .row === row && end  .col === col) {
-          removePath(p);
-          break;
-        }
+      const start = p.path[0];
+      const end   = p.path[p.path.length - 1];
+      if (p.color === color && (
+        start.row === row && start.col === col ||
+            end  .row === row && end  .col === col
+      )) {
+        removePath(p);
+        break;
       }
     }
     resetDrag();
     return;
   }
 
-  // End of drag = validate
+  // Otherwise, if you dragged to a matching dot, finalize it
   if (dragPath.length >= 2) {
     const start = dragPath[0];
     const end   = dragPath[dragPath.length - 1];
@@ -218,6 +455,7 @@ function mouseReleased() {
   resetDrag();
 }
 
+
 function getCellFromMouse() {
   const col = floor((mouseX - xOffset) / cellSize);
   const row = floor((mouseY - yOffset) / cellSize);
@@ -225,7 +463,7 @@ function getCellFromMouse() {
 }
 
 function isInsideGrid(row, col) {
-  return row >= 0 && row < GRID_DIMENSIONS && col >= 0 && col < GRID_DIMENSIONS;
+  return row >= 0 && row < gridDimensions && col >= 0 && col < gridDimensions;
 }
 
 function cellsAreAdjacent(r1, c1, r2, c2) {
@@ -275,10 +513,11 @@ function cellToCenterXY(cell) {
 }
 
 function removePath(pathObj) {
-  // clear intersecting cells
   for (let i = 1; i < pathObj.path.length - 1; i++) {
     const c = pathObj.path[i];
-    mainGrid[c.row][c.col] = null;
+    if (mainGrid[c.row][c.col] !== "xJunction") {
+      mainGrid[c.row][c.col] = null;
+    }
   }
   const idx = completedPaths.indexOf(pathObj);
   if (idx !== -1) {
@@ -286,5 +525,20 @@ function removePath(pathObj) {
   }
 }
 
-////////////////////////////////////////////////////////////////////////
 
+function drawTimer() {
+  fill(255);
+  textSize(24);
+  textAlign(RIGHT, TOP);
+  text(`Time Left: ${Math.ceil(timeRemaining / 1000)}`, width - 20, 20);
+}
+
+function isGridFull() {
+  for (let row = 0; row < gridDimensions; row++) {
+    for (let col = 0; col < gridDimensions; col++) {
+      const val = mainGrid[row][col];
+      if (val === null) return false;
+    }
+  }
+  return true;
+}
