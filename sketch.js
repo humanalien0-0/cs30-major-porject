@@ -289,7 +289,6 @@ function startScreen() {
 
     text(instructionsText, boxX, boxY, boxWidth - 40, boxHeight - 40);
   }
-
 }
 
 function loadLevel(levelIndex) {
