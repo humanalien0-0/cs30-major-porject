@@ -2,9 +2,13 @@
 // Ranu Jayawickrama
 // April 17th
 
-// things to do////////////////////////
-// commenting
-// sound effects
+// Extras for experts:
+// Interactive Winner screen
+// Dynamic Color Gradient Backgrounds
+// special bocks logic
+// Backtracking
+// User interface
+// Collision detection
 
 // Grid dimensions
 let gridDimensions = 6;
@@ -74,6 +78,257 @@ const NUMBER_OF_FIREWORKS_PER_CLICK = 20; // number of particles per explosion
 
 let currentLevel = 0; 
 let pixelFont; // custom pixel font
+
+// Class for animated background balls used in outro screen
+class MovingPoint {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.speed = DEFAULT_SPEED;
+    this.radius = DEFAULT_RADIUS;
+    this.reach = DEFAULT_REACH;
+    this.maxRadius = MAX_RADIUS;
+    this.minRadius = MIN_RADIUS;
+
+    // Set color based on horizontal and vertical gradients
+    let horiz = lerpColor(GRADIENT_LEFT, GRADIENT_RIGHT, this.x / width);
+    let vert = lerpColor(GRADIENT_TOP, GRADIENT_BOTTOM, this.y / height);
+    this.color = lerpColor(horiz, vert, 0.5);
+
+    // For Perlin noise movement
+    this.xTime = random(1000);
+    this.yTime = random(1000);
+    this.id = idCounter++;
+
+    this.alpha = 0; // Fade in
+    this.fadeSpeed = 5; // Speed of fade-in effect
+  }
+
+  // Update ball position and size
+  update() {
+    this.move();
+    this.wrapAroundScreen();
+    this.adjustSize();
+  }
+
+  // Draw the ball with fade-in alpha
+  display() {
+    noStroke();
+    let fadedColor = color(
+      red(this.color),
+      green(this.color),
+      blue(this.color),
+      this.alpha
+    );
+    fill(fadedColor);
+    circle(this.x, this.y, this.radius * 2);
+
+    if (this.alpha < 255) {
+      this.alpha += this.fadeSpeed;
+      this.alpha = min(this.alpha, 255);
+    }
+  }
+
+  // Change size based on distance to mouse
+  adjustSize() {
+    let mouseDistance = dist(mouseX, mouseY, this.x, this.y);
+    if (mouseDistance < this.reach) {
+      this.radius = map(mouseDistance, 0, this.reach, this.maxRadius, this.minRadius);
+    }
+    else {
+      this.radius = this.minRadius;
+    }
+  }
+
+  // Draw line to another ball if close enough
+  connectTo(otherNode) {
+    let distance = dist(this.x, this.y, otherNode.x, otherNode.y);
+    if (distance < this.reach) {
+      let alpha = map(distance, 0, this.reach, 255, 0);
+      stroke(red(this.color), green(this.color), blue(this.color), alpha);
+      strokeWeight(5);
+      line(this.x, this.y, otherNode.x, otherNode.y);
+    }
+  }
+
+  // Update position using Perlin noise
+  move() {
+    let dx = noise(this.xTime);
+    let dy = noise(this.yTime);
+
+    dx = map(dx, 0, 1, -this.speed, this.speed);
+    dy = map(dy, 0, 1, -this.speed, this.speed);
+
+    this.x += dx;
+    this.y += dy;
+
+    this.xTime += DELTA_TIME;
+    this.yTime += DELTA_TIME;
+  }
+
+  // Reappear on the opposite side when leaving screen bounds
+  wrapAroundScreen() {
+    let margin = this.radius;
+
+    if (this.x < -margin) {
+      this.x = width + margin;
+      this.xTime = random(1000);
+    }
+    else if (this.x > width + margin) {
+      this.x = -margin;
+      this.xTime = random(1000);
+    }
+
+    if (this.y < -margin) {
+      this.y = height + margin;
+      this.yTime = random(1000);
+    }
+    else if (this.y > height + margin) {
+      this.y = -margin;
+      this.yTime = random(1000);
+    }
+
+    // Update color based on new position
+    let horiz = lerpColor(GRADIENT_LEFT, GRADIENT_RIGHT, this.x / width);
+    let vert = lerpColor(GRADIENT_TOP, GRADIENT_BOTTOM, this.y / height);
+    this.color = lerpColor(horiz, vert, 0.5);
+  }
+}
+
+// Represents a single firework particle
+class Particle {
+  constructor(x, y, dx, dy, particleColours) {
+    this.x = x;
+    this.y = y;
+    this.dx = dx;
+    this.dy = dy;
+    this.radius = 3;
+    this.color = particleColours;
+    this.opacity = 255; // starts fully visible
+  }
+
+  // Draw the particle with transparency
+  display() {
+    noStroke();
+    fill(red(this.color), green(this.color), blue(this.color), this.opacity);
+    circle(this.x, this.y, this.radius * 2);
+  }
+
+  // Update position and reduce opacity to fade out
+  update() {
+    this.x += this.dx;
+    this.y += this.dy;
+    this.opacity -= 3.5;
+  }
+
+  // Mark particle as dead once fully faded
+  isDead() {
+    return this.opacity <= 0;
+  }
+}
+
+// Represents a full firework explosion made of many particles
+class Firework {
+  constructor(x, y, count) {
+    this.particles = [];
+    this.startColor = color(random(255), random(255), random(255));
+    this.endColor = color(random(255), random(255), random(255));
+
+    // Create particles with angles and speeds radiating out
+    for (let i = 0; i < count; i++) {
+      let angle = random(TWO_PI);
+      let speed = random(3, 6);
+      let dx = cos(angle) * speed;
+      let dy = sin(angle) * speed;
+
+      let FlightTime = i / count; // from 0 to 1
+      let colours = lerpColor(this.startColor, this.endColor, FlightTime);
+
+      this.particles.push(new Particle(x, y, dx, dy, colours));
+    }
+  }
+
+  // Update all particles and remove dead ones
+  update() {
+    for (let p of this.particles) {
+      p.update();
+    }
+    this.particles = this.particles.filter(p => !p.isDead());
+  }
+
+  // Display all particles
+  display() {
+    for (let p of this.particles) {
+      p.display();
+    }
+  }
+
+  // Firework is done when all particles are gone
+  isDead() {
+    return this.particles.length === 0;
+  }
+}
+
+// Launches a firework upward, leaves trail, and explodes
+class Launcher {
+  constructor() {
+    this.x = width / 2;
+    this.y = height * 7 / 8;
+    this.angle = random(-PI / 4, -3 * PI / 4); // upward spread
+    this.speed = random(8, 10);
+    this.dx = cos(this.angle) * this.speed;
+    this.dy = sin(this.angle) * this.speed;
+    this.trail = [];
+    this.maxTrail = 3;
+    this.exploded = false;
+  }
+
+  // Update position and trigger explosion
+  update() {
+    if (this.exploded) {
+      return;
+    }
+
+    this.trail.push({ x: this.x, y: this.y });
+    if (this.trail.length > this.maxTrail) {
+      this.trail.shift();
+    }
+
+    this.x += this.dx;
+    this.y += this.dy;
+
+    // Trigger explosion at upper region of screen
+    if (this.y < random(height / 4, height / 3)) {
+      fireworks.push(new Firework(this.x, this.y, NUMBER_OF_FIREWORKS_PER_CLICK));
+      this.exploded = true;
+    }
+  }
+
+  // Draw launcher trail and current position
+  display() {
+    if (this.exploded) {
+      return;
+    }
+
+    noFill();
+    stroke(255);
+    for (let i = 1; i < this.trail.length; i++) {
+      let a = this.trail[i - 1];
+      let b = this.trail[i];
+      stroke(255, map(i, 0, this.trail.length, 50, 1));
+      line(a.x, a.y, b.x, b.y);
+    }
+
+    noStroke();
+    fill(255);
+    circle(this.x, this.y, 5);
+  }
+
+  // Considered done once exploded
+  isDead() {
+    return this.exploded;
+  }
+}
 
 //levels 
 let levels = [
@@ -532,15 +787,15 @@ function isLegalMove(last, row, col, val) {
 
 // Check for collisions with existing completed paths
 function collidesWithExisting(last, newCell) {
-  const newA = cellToCenterXY(last);
-  const newB = cellToCenterXY(newCell);
+  const newStartOfLine = cellToCenterXY(last);
+  const newEndOfLine = cellToCenterXY(newCell);
   for (const pathObj of completedPaths) {
     const pts = pathObj.path;
     for (let i = 0; i < pts.length - 1; i++) {
-      const oldA = cellToCenterXY(pts[i]);
-      const oldB = cellToCenterXY(pts[i + 1]);
+      const oldStartOfLine = cellToCenterXY(pts[i]);
+      const oldEndOfLine = cellToCenterXY(pts[i + 1]);
 
-      // Skip collision check if any segment involves an xJunction
+      // check if any segment involves an xJunction first
       if (
         xJunctionAt(last.row, last.col) ||
         xJunctionAt(newCell.row, newCell.col) ||
@@ -553,8 +808,8 @@ function collidesWithExisting(last, newCell) {
       // Check line intersection
       if (
         collideLineLine(
-          newA.x, newA.y, newB.x, newB.y,
-          oldA.x, oldA.y, oldB.x, oldB.y
+          newStartOfLine.x, newStartOfLine.y, newEndOfLine.x, newEndOfLine.y,
+          oldStartOfLine.x, oldStartOfLine.y, oldEndOfLine.x, oldEndOfLine.y
         )
       ) {
         removePath(pathObj);
@@ -609,7 +864,7 @@ function mouseReleased() {
     return;
   }
 
-  // If only one cell was dragged, check for dot re-click (erase path)
+  // Check for dot re-click to erase path drawn
   if (dragPath.length === 1) {
     const { row, col } = dragPath[0];
     const color = mainGrid[row][col];
@@ -645,7 +900,7 @@ function mouseReleased() {
   resetDrag(); // Always reset dragging path on mouse release
 }
 
-// Convert current mouse position into grid cell coordinates
+// Convert current mouse position into grid cell coordinates for dragging along the cells
 function getCellFromMouse() {
   const col = floor((mouseX - xOffset) / cellSize);
   const row = floor((mouseY - yOffset) / cellSize);
@@ -657,7 +912,7 @@ function isInsideGrid(row, col) {
   return row >= 0 && row < gridDimensions && col >= 0 && col < gridDimensions;
 }
 
-// Check if two cells are directly adjacent (up/down/left/right)
+// Check if two cells are directly adjacent 
 function cellsAreAdjacent(r1, c1, r2, c2) {
   return abs(r1 - r2) + abs(c1 - c2) === 1;
 }
@@ -700,7 +955,7 @@ function drawCompletedPaths() {
   }
 }
 
-// Convert a grid cell to its center pixel coordinates
+// set the location for dots and special blocks as the center of the cell
 function cellToCenterXY(cell) {
   return {
     x: xOffset + cell.col * cellSize + cellSize / 2,
@@ -740,7 +995,7 @@ function drawTimer() {
   fill(80);
   rect(x, y, barWidth, barHeight);
 
-  // Foreground bar (color transitions from red to green)
+  // life bar (color transitions from green to red)
   fill(lerpColor(color(255, 0, 0), color(0, 255, 0), percentLeft));
   rect(x, y, barWidth * percentLeft, barHeight);
 
@@ -850,10 +1105,10 @@ function updateBackgroundColor() {
   let totalR = 0, totalG = 0, totalB = 0;
 
   for (let node of balls) {
-    let w = map(node.x, 0, width, 1.5, 0.5); // left side influences more
-    totalR += red(node.color) * w;
-    totalG += green(node.color) * w;
-    totalB += blue(node.color) * w;
+    let weightColor = map(node.x, 0, width, 1.5, 0.5); // left side influences more
+    totalR += red(node.color) * weightColor;
+    totalG += green(node.color) * weightColor;
+    totalB += blue(node.color) * weightColor;
   }
 
   let avgR = totalR / balls.length;
@@ -861,122 +1116,6 @@ function updateBackgroundColor() {
   let avgB = totalB / balls.length;
 
   background(avgR * 0.5, avgG * 0.5, avgB * 0.5); // darker blend
-}
-
-// Class for animated background balls used in outro screen
-class MovingPoint {
-  constructor(x, y) {
-    this.x = x;
-    this.y = y;
-    this.speed = DEFAULT_SPEED;
-    this.radius = DEFAULT_RADIUS;
-    this.reach = DEFAULT_REACH;
-    this.maxRadius = MAX_RADIUS;
-    this.minRadius = MIN_RADIUS;
-
-    // Set color based on horizontal and vertical gradients
-    let horiz = lerpColor(GRADIENT_LEFT, GRADIENT_RIGHT, this.x / width);
-    let vert = lerpColor(GRADIENT_TOP, GRADIENT_BOTTOM, this.y / height);
-    this.color = lerpColor(horiz, vert, 0.5);
-
-    // For Perlin noise movement
-    this.xTime = random(1000);
-    this.yTime = random(1000);
-    this.id = idCounter++;
-
-    this.alpha = 0; // Fade in
-    this.fadeSpeed = 5; // Speed of fade-in effect
-  }
-
-  // Update ball position and size
-  update() {
-    this.move();
-    this.wrapAroundScreen();
-    this.adjustSize();
-  }
-
-  // Draw the ball with fade-in alpha
-  display() {
-    noStroke();
-    let fadedColor = color(
-      red(this.color),
-      green(this.color),
-      blue(this.color),
-      this.alpha
-    );
-    fill(fadedColor);
-    circle(this.x, this.y, this.radius * 2);
-
-    if (this.alpha < 255) {
-      this.alpha += this.fadeSpeed;
-      this.alpha = min(this.alpha, 255);
-    }
-  }
-
-  // Change size based on distance to mouse
-  adjustSize() {
-    let mouseDistance = dist(mouseX, mouseY, this.x, this.y);
-    if (mouseDistance < this.reach) {
-      this.radius = map(mouseDistance, 0, this.reach, this.maxRadius, this.minRadius);
-    }
-    else {
-      this.radius = this.minRadius;
-    }
-  }
-
-  // Draw line to another ball if close enough
-  connectTo(otherNode) {
-    let distance = dist(this.x, this.y, otherNode.x, otherNode.y);
-    if (distance < this.reach) {
-      let alpha = map(distance, 0, this.reach, 255, 0);
-      stroke(red(this.color), green(this.color), blue(this.color), alpha);
-      strokeWeight(5);
-      line(this.x, this.y, otherNode.x, otherNode.y);
-    }
-  }
-
-  // Update position using Perlin noise
-  move() {
-    let dx = noise(this.xTime);
-    let dy = noise(this.yTime);
-
-    dx = map(dx, 0, 1, -this.speed, this.speed);
-    dy = map(dy, 0, 1, -this.speed, this.speed);
-
-    this.x += dx;
-    this.y += dy;
-
-    this.xTime += DELTA_TIME;
-    this.yTime += DELTA_TIME;
-  }
-
-  // Reappear on the opposite side when leaving screen bounds
-  wrapAroundScreen() {
-    let margin = this.radius;
-
-    if (this.x < -margin) {
-      this.x = width + margin;
-      this.xTime = random(1000);
-    }
-    else if (this.x > width + margin) {
-      this.x = -margin;
-      this.xTime = random(1000);
-    }
-
-    if (this.y < -margin) {
-      this.y = height + margin;
-      this.yTime = random(1000);
-    }
-    else if (this.y > height + margin) {
-      this.y = -margin;
-      this.yTime = random(1000);
-    }
-
-    // Update color based on new position
-    let horiz = lerpColor(GRADIENT_LEFT, GRADIENT_RIGHT, this.x / width);
-    let vert = lerpColor(GRADIENT_TOP, GRADIENT_BOTTOM, this.y / height);
-    this.color = lerpColor(horiz, vert, 0.5);
-  }
 }
 
 // Start fireworks sequence on win screen
@@ -1005,141 +1144,6 @@ function stopFireworks() {
   clearInterval(winSlowInterval);
   launchers = [];
   fireworks = [];
-}
-
-// Represents a single firework particle
-class Particle {
-  constructor(x, y, dx, dy, particleColours) {
-    this.x = x;
-    this.y = y;
-    this.dx = dx;
-    this.dy = dy;
-    this.radius = 3;
-    this.color = particleColours;
-    this.opacity = 255; // starts fully visible
-  }
-
-  // Draw the particle with transparency
-  display() {
-    noStroke();
-    fill(red(this.color), green(this.color), blue(this.color), this.opacity);
-    circle(this.x, this.y, this.radius * 2);
-  }
-
-  // Update position and reduce opacity to fade out
-  update() {
-    this.x += this.dx;
-    this.y += this.dy;
-    this.opacity -= 3.5;
-  }
-
-  // Mark particle as dead once fully faded
-  isDead() {
-    return this.opacity <= 0;
-  }
-}
-
-// Represents a full firework explosion made of many particles
-class Firework {
-  constructor(x, y, count) {
-    this.particles = [];
-    this.startColor = color(random(255), random(255), random(255));
-    this.endColor = color(random(255), random(255), random(255));
-
-    // Create particles with angles and speeds radiating out
-    for (let i = 0; i < count; i++) {
-      let angle = random(TWO_PI);
-      let speed = random(3, 6);
-      let dx = cos(angle) * speed;
-      let dy = sin(angle) * speed;
-
-      let FlightTime = i / count; // from 0 to 1
-      let colours = lerpColor(this.startColor, this.endColor, FlightTime);
-
-      this.particles.push(new Particle(x, y, dx, dy, colours));
-    }
-  }
-
-  // Update all particles and remove dead ones
-  update() {
-    for (let p of this.particles) {
-      p.update();
-    }
-    this.particles = this.particles.filter(p => !p.isDead());
-  }
-
-  // Display all particles
-  display() {
-    for (let p of this.particles) {
-      p.display();
-    }
-  }
-
-  // Firework is done when all particles are gone
-  isDead() {
-    return this.particles.length === 0;
-  }
-}
-
-// Launches a firework upward, leaves trail, and explodes
-class Launcher {
-  constructor() {
-    this.x = width / 2;
-    this.y = height * 7 / 8;
-    this.angle = random(-PI / 4, -3 * PI / 4); // upward spread
-    this.speed = random(8, 10);
-    this.dx = cos(this.angle) * this.speed;
-    this.dy = sin(this.angle) * this.speed;
-    this.trail = [];
-    this.maxTrail = 3;
-    this.exploded = false;
-  }
-
-  // Update position and trigger explosion
-  update() {
-    if (this.exploded) {
-      return;
-    }
-
-    this.trail.push({ x: this.x, y: this.y });
-    if (this.trail.length > this.maxTrail) {
-      this.trail.shift();
-    }
-
-    this.x += this.dx;
-    this.y += this.dy;
-
-    // Trigger explosion at upper region of screen
-    if (this.y < random(height / 4, height / 3)) {
-      fireworks.push(new Firework(this.x, this.y, NUMBER_OF_FIREWORKS_PER_CLICK));
-      this.exploded = true;
-    }
-  }
-
-  // Draw launcher trail and current position
-  display() {
-    if (this.exploded) {
-      return;
-    }
-
-    noFill();
-    stroke(255);
-    for (let i = 1; i < this.trail.length; i++) {
-      let a = this.trail[i - 1];
-      let b = this.trail[i];
-      stroke(255, map(i, 0, this.trail.length, 50, 1));
-      line(a.x, a.y, b.x, b.y);
-    }
-
-    noStroke();
-    fill(255);
-    circle(this.x, this.y, 5);
-  }
-
-  // Considered done once exploded
-  isDead() {
-    return this.exploded;
-  }
 }
 
 // Win screen with fireworks and stats display
