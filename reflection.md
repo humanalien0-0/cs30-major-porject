@@ -1,18 +1,20 @@
-# CS30 Major Porject Beta Testing
+# CS30 Major Porject Reflection
 
-## Perspective of someone experienced in coding
+## What advice would I give myself?
 
-- fix the mouse animation in the startign screen so that the wave is shown in the left and the right side as well 
-- Reduce the timming for each level
-- make it so that you can choose a specific level
-- Add sound effects
-- its good that the instructions are shown when hovered not clicked
-- make the movement smoother
-- interface is good
-- highlight line
+- Spend less time perfectioning visuals and complete the basic logic first.
+- Be more productive in the start rather than the end.
+- Study more about 2dCollide library.
 
+## Was everything in needs to have completed?
 
-## Perspective of someone not experience in coding
+- Yes, almost everything in the needs to have was completed exept the sound effects which i didnt have much to complete.
 
-- make the line standout
+## The hardest part?
 
+- Moment restrictions of the line was the hardest puzzle to solve.
+- Giving different characteristics to the special blocks was also quite challenging.
+
+## Were there any problems I could not solve?
+
+- I was asked to make the movement of the line smoother which I was unable to do because the code was based on drawing the line from cell to cell rather than a line from a pencil. I coudnt think of a way to make it smoother without disrupting the fundamentals.
